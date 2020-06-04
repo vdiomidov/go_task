@@ -24,6 +24,7 @@ type Showing struct {
 
 type Storage interface {
 	GetActiveSession(userId string, price string) (int, error)
+	GetAdvPrice(SessionId string, AdvIds []string) (float32, error)
 }
 
 type App struct {
@@ -40,9 +41,6 @@ func (a App) GetSession(userId string, price string) (int, error) {
 	return a.storage.GetActiveSession(userId, price)
 }
 
-//func (App) GetAdvPrice(w http.ResponseWriter, r *http.Request) {
-//	if r.Method != "POST" {
-//		w.WriteHeader(http.StatusMethodNotAllowed)
-//		return
-//	}
-//}
+func (a App) GetAdvPrice(SessionId string, AdvIds []string) (float32, error) {
+	return a.storage.GetAdvPrice(SessionId, AdvIds)
+}

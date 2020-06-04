@@ -3,7 +3,6 @@ package mysqlstorage
 import (
 	"database/sql"
 	"fmt"
-	"log"
 
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -24,14 +23,11 @@ func New(connStr string) (*Storage, error) {
 }
 
 func (s Storage) GetActiveSession(userId string, price string) (int, error) {
-	var userId1 = "111"
 	var sessionId int
-	log.Printf(userId)
 
 	err := s.db.
-		QueryRow("SELECT id FROM sessions WHERE date_add(created_at, INTERVAL 20 MINUTE) < NOW() AND active = 1 AND user_id = ?;", userId1).
+		QueryRow("SELECT id FROM sessions WHERE date_add(created_at, INTERVAL 30 MINUTE) > NOW() AND active = 1 AND user_id = ?;", userId).
 		Scan(&sessionId)
-		//
 	switch err {
 	case sql.ErrNoRows:
 	case nil:
@@ -40,10 +36,9 @@ func (s Storage) GetActiveSession(userId string, price string) (int, error) {
 		return 0, fmt.Errorf("query row: %w", err)
 	}
 
-	// update prev session
-	//_, err := db.Exec(`UPDATE foo VALUES("bar", ?))`, someParam)
+	_, err = s.db.Exec("UPDATE sessions SET active=0 WHERE user_id = ?;", userId)
 
-	res, err := s.db.Exec(`INSERT INTO sessions VALUES("bar", ?))`, userId, price)
+	res, err := s.db.Exec("INSERT INTO sessions (user_id, price) VALUES(?,?)", userId, price)
 	if err != nil {
 		return 0, err
 	}
@@ -54,4 +49,42 @@ func (s Storage) GetActiveSession(userId string, price string) (int, error) {
 	}
 
 	return int(id), nil
+}
+
+func (s Storage) GetAdvPrice(SessionId string, AdvIds []string) (float32, error) {
+	var count int
+
+	err := s.db.
+		QueryRow("SELECT count(id) FROM sessions WHERE date_add(created_at, INTERVAL 30 MINUTE) > NOW() AND id = ?;", SessionId).
+		Scan(&count)
+	switch err {
+	case nil:
+	default:
+		return 0, fmt.Errorf("query row: %w", err)
+	}
+	if count == 0 {
+		return 0, fmt.Errorf("wrong session: %s", SessionId)
+	}
+
+	for _, advId := range AdvIds {
+		_, err := s.db.Exec("INSERT INTO showing (session_id, adv_id) VALUES(?,?)", SessionId, advId)
+		if err != nil {
+			return 0, err
+		}
+	}
+
+	var price float32
+
+	err = s.db.
+		QueryRow("SELECT (s.price/COUNT(session_id)) cnt FROM showing sh INNER JOIN sessions s ON sh.session_id = s.id WHERE session_id=? LIMIT 1;", SessionId).
+		Scan(&price)
+	switch err {
+	case sql.ErrNoRows:
+		return 0, fmt.Errorf("wrong session: %s", SessionId)
+	case nil:
+	default:
+		return 0, fmt.Errorf("query row: %w", err)
+	}
+
+	return price, nil
 }

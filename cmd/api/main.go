@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"task/internal/application"
@@ -18,27 +17,16 @@ func main() {
 	app := application.NewApp(storage)
 
 	http.HandleFunc("/getsession", func(w http.ResponseWriter, r *http.Request) {
-		type Params struct {
-			userId string `json:"user_id"`
+		var params struct {
+			UserId string `json:"user_id"`
+			Price  string `json:"price"`
 		}
-		var params Params
 
-		//if !getParams(w, r, params) {
-		//	return
-		//}
-		err := json.NewDecoder(r.Body).Decode(&params)
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
+		if !getParams(w, r, &params) {
 			return
 		}
-		qqq, err := ioutil.ReadAll(r.Body)
-		log.Printf(string(qqq))
-		if err != nil {
-			log.Printf(err.Error())
-		}
-		log.Printf("11111111111111111")
 
-		sessionId, err := app.GetSession(params.userId, "2222")
+		sessionId, err := app.GetSession(params.UserId, params.Price)
 		if err != nil {
 			log.Printf(err.Error())
 			w.WriteHeader(http.StatusBadRequest)
@@ -49,7 +37,26 @@ func main() {
 		json.NewEncoder(w).Encode(sessionId)
 	})
 
-	//http.HandleFunc("/price", app.GetAdvPrice)
+	http.HandleFunc("/getprice", func(w http.ResponseWriter, r *http.Request) {
+		var params struct {
+			SessionId string `json:"session_id"`
+			Adv       []string
+		}
+
+		if !getParams(w, r, &params) {
+			return
+		}
+
+		price, err := app.GetAdvPrice(params.SessionId, params.Adv)
+		if err != nil {
+			log.Printf(err.Error())
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(price)
+	})
 
 	log.Fatal(http.ListenAndServe(":8000", nil))
 }
