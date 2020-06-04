@@ -23,7 +23,7 @@ type Showing struct {
 }
 
 type Storage interface {
-	GetActiveSession(userId string, price int) (int, error)
+	GetActiveSession(userId string, price string) (int, error)
 }
 
 type App struct {
@@ -36,7 +36,7 @@ func NewApp(storage Storage) *App {
 	}
 }
 
-func (a App) GetSession(userId string, price int) (int, error) {
+func (a App) GetSession(userId string, price string) (int, error) {
 	return a.storage.GetActiveSession(userId, price)
 }
 

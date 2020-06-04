@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"task/internal/application"
@@ -17,18 +18,29 @@ func main() {
 	app := application.NewApp(storage)
 
 	http.HandleFunc("/getsession", func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("qqq")
-		var params struct {
-			ip    string
-			price int
+		type Params struct {
+			userId string `json:"user_id"`
 		}
+		var params Params
 
-		if !getParams(w, r, params) {
+		//if !getParams(w, r, params) {
+		//	return
+		//}
+		err := json.NewDecoder(r.Body).Decode(&params)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-
-		sessionId, err := app.GetSession(params.ip, params.price)
+		qqq, err := ioutil.ReadAll(r.Body)
+		log.Printf(string(qqq))
 		if err != nil {
+			log.Printf(err.Error())
+		}
+		log.Printf("11111111111111111")
+
+		sessionId, err := app.GetSession(params.userId, "2222")
+		if err != nil {
+			log.Printf(err.Error())
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}

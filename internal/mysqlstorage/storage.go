@@ -3,6 +3,7 @@ package mysqlstorage
 import (
 	"database/sql"
 	"fmt"
+	"log"
 
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -22,11 +23,15 @@ func New(connStr string) (*Storage, error) {
 	}, nil
 }
 
-func (s Storage) GetActiveSession(userId string, price int) (int, error) {
-	row := s.db.QueryRow("select id from sessions where active=1 and user_id=$1", userId)
-
+func (s Storage) GetActiveSession(userId string, price string) (int, error) {
+	var userId1 = "111"
 	var sessionId int
-	err := row.Scan(&sessionId)
+	log.Printf(userId)
+
+	err := s.db.
+		QueryRow("SELECT id FROM sessions WHERE date_add(created_at, INTERVAL 20 MINUTE) < NOW() AND active = 1 AND user_id = ?;", userId1).
+		Scan(&sessionId)
+		//
 	switch err {
 	case sql.ErrNoRows:
 	case nil:
